@@ -13,6 +13,8 @@ services:
     env_file: .env
     volumes:
       - pg_data_production:/var/lib/postgresql/data
+    ports:
+      - 5434:5434
   backend:
     image: tatprince/foodgram_backend
     env_file: .env
