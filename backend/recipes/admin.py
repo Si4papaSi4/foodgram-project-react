@@ -12,12 +12,8 @@ class RecipeAdmin(admin.ModelAdmin):
         'name',
         'author'
     )
-    list_editable = (
-        'name',
-        'author'
-    )
     list_filter = ('author', 'name', 'tags')
-    list_display_links = ('author',)
+    list_display_links = ('name', 'author',)
     filter_horizontal = ('tags', 'ingredients')
 
 
