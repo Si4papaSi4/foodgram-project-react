@@ -16,7 +16,7 @@ class Tag(models.Model):
     color = ColorField(
         default='#FF0000',
         blank=False,
-    verbose_name='Цвет'
+        verbose_name='Цвет'
     )
     slug = models.SlugField(
         max_length=128,
@@ -27,6 +27,7 @@ class Tag(models.Model):
     class Meta:
         verbose_name = 'Тег'
         verbose_name_plural = 'Теги'
+
 
 class Ingredient(models.Model):
     name = models.CharField(
