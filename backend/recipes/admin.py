@@ -10,17 +10,8 @@ admin.site.empty_value_display = 'Не задано'
 class RecipeAdmin(admin.ModelAdmin):
     list_display = (
         'name',
-        'author'
-    )
-    fields = (
-        'name',
         'author',
-        'text',
-        'cooking_time',
-        'added_in_favorite',
-        'ingredients',
-        'tags',
-        'image'
+        'added_in_favorite'
     )
     list_filter = ('author', 'name', 'tags')
     list_display_links = ('name', 'author',)
