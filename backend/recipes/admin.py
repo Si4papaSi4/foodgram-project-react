@@ -1,8 +1,7 @@
-# ice_cream/admin.py
 from django.contrib import admin
 
 from .models import Recipe, Ingredient, \
-    Tag, Favorite  # , IngredientDetail, ShoppingCart
+    Tag, Favorite
 
 admin.site.empty_value_display = 'Не задано'
 
@@ -20,7 +19,7 @@ class RecipeAdmin(admin.ModelAdmin):
     list_filter = ('author', 'name', 'tags')
     list_display_links = ('name', 'author',)
     inlines = (IngredientsInlineAdmin,)
-    filter_horizontal = ('tags', 'ingredients')
+    filter_horizontal = ('tags',)
 
     def added_in_favorite(self, obj):
         count = Favorite.objects.filter(recipe=obj).count()

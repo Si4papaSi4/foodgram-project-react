@@ -97,8 +97,7 @@ class Base64ImageField(serializers.ImageField):
     def to_internal_value(self, data):
         if isinstance(data, str) and data.startswith('data:image'):
             decoded_image = base64.b64decode(data.split(';base64,')[1])
-            filename = str(
-                uuid.uuid4()) + '.jpg'
+            filename = str(uuid.uuid4()) + '.jpg'
             with open(os.path.join(settings.MEDIA_ROOT, filename), 'wb') as f:
                 f.write(decoded_image)
             return filename
