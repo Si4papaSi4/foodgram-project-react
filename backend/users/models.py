@@ -39,7 +39,7 @@ class CustomUser(AbstractUser):
         related_name='subscription',
         blank=True,
         symmetrical=False,
-        verbose_name='Подписчики'
+        verbose_name='Подписки'
     )
     REQUIRED_FIELDS = ["first_name", "last_name", "username"]
     USERNAME_FIELD = 'email'
