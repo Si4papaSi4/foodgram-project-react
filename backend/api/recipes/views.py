@@ -1,7 +1,7 @@
 import csv
 
-from convert_to_queryset import list_to_queryset
 from django.contrib.auth import get_user_model
+from django.db.models import Exists, OuterRef
 from django.db.utils import IntegrityError
 from django.http import Http404, HttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
@@ -50,55 +50,32 @@ class RecipeViewSet(NoPatchMixin):
     filter_backends = (DjangoFilterBackend,)
     filterset_class = CustomFilter
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
-        is_favorited = request.query_params.get('is_favorited')
-        is_in_shopping_cart = request.query_params.get('is_in_shopping_cart')
-        filtered_queryset = queryset
-        if request.user.is_authenticated:
-            filtered_queryset = set()
-            if is_favorited == '1':
-                for object in queryset:
-                    try:
-                        Favorite.objects.get(user=request.user, recipe=object)
-                        filtered_queryset.add(object)
-                    except Favorite.DoesNotExist:
-                        pass
-            elif is_favorited == '0':
-                for object in queryset:
-                    try:
-                        Favorite.objects.get(user=request.user, recipe=object)
-                    except Favorite.DoesNotExist:
-                        filtered_queryset.add(object)
-                        pass
-            if is_in_shopping_cart == '1':
-                for object in queryset:
-                    try:
-                        ShoppingCart.objects.get(user=request.user,
-                                                 recipe=object)
-                        filtered_queryset.add(object)
-                    except ShoppingCart.DoesNotExist:
-                        pass
-            elif is_in_shopping_cart == '0':
-                for object in queryset:
-                    try:
-                        ShoppingCart.objects.get(user=request.user,
-                                                 recipe=object)
-                    except ShoppingCart.DoesNotExist:
-                        filtered_queryset.add(object)
-                        pass
-            if is_in_shopping_cart is None and is_favorited is None:
-                filtered_queryset = queryset
-            else:
-                filtered_queryset = list_to_queryset(Recipe,
-                                                     list(filtered_queryset))
-        page = self.paginate_queryset(filtered_queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        is_favorited = self.request.query_params.get('is_favorited')
+        is_in_shopping_cart = self.request.query_params.get(
+            'is_in_shopping_cart')
 
-        serializer = self.get_serializer(filtered_queryset, many=True)
-        return Response(serializer.data)
+        if self.request.user.is_authenticated:
+            if is_favorited == '1':
+                subquery = Favorite.objects.filter(user=self.request.user,
+                                                   recipe=OuterRef('pk'))
+                queryset = queryset.filter(Exists(subquery))
+            elif is_favorited == '0':
+                subquery = Favorite.objects.filter(user=self.request.user,
+                                                   recipe=OuterRef('pk'))
+                queryset = queryset.exclude(Exists(subquery))
+
+            if is_in_shopping_cart == '1':
+                subquery = ShoppingCart.objects.filter(user=self.request.user,
+                                                       recipe=OuterRef('pk'))
+                queryset = queryset.filter(Exists(subquery))
+            elif is_in_shopping_cart == '0':
+                subquery = ShoppingCart.objects.filter(user=self.request.user,
+                                                       recipe=OuterRef('pk'))
+                queryset = queryset.exclude(Exists(subquery))
+
+        return queryset.distinct()
 
     def get_serializer_class(self):
         if self.request.method in permissions.SAFE_METHODS:
