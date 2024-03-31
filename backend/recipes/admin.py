@@ -7,6 +7,10 @@ from .models import Recipe, Ingredient, \
 admin.site.empty_value_display = 'Не задано'
 
 
+class IngredientsInlineAdmin(admin.TabularInline):
+    model = Recipe.ingredients.through
+
+
 class RecipeAdmin(admin.ModelAdmin):
     list_display = (
         'name',
@@ -15,6 +19,7 @@ class RecipeAdmin(admin.ModelAdmin):
     )
     list_filter = ('author', 'name', 'tags')
     list_display_links = ('name', 'author',)
+    inlines = (IngredientsInlineAdmin,)
     filter_horizontal = ('tags', 'ingredients')
 
     def added_in_favorite(self, obj):
