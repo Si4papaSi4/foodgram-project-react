@@ -10,8 +10,17 @@ admin.site.empty_value_display = 'Не задано'
 class RecipeAdmin(admin.ModelAdmin):
     list_display = (
         'name',
+        'author'
+    )
+    fields = (
+        'name',
         'author',
-        'added_in_favorite'
+        'text',
+        'cooking_time',
+        'added_in_favorite',
+        'ingredients',
+        'tags',
+        'image'
     )
     list_filter = ('author', 'name', 'tags')
     list_display_links = ('name', 'author',)
@@ -23,6 +32,15 @@ class RecipeAdmin(admin.ModelAdmin):
     added_in_favorite.short_description = "В избранном"
 
 
+class IngredientAdmin(admin.ModelAdmin):
+    list_display = (
+        'name',
+        'measurement_unit'
+    )
+    list_filter = ('name',)
+    list_display_links = ('name', )
+
+
 admin.site.register(Recipe, RecipeAdmin)
 admin.site.register(Tag)
-admin.site.register(Ingredient)
+admin.site.register(Ingredient, IngredientAdmin)
