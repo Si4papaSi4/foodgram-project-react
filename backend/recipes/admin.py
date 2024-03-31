@@ -2,7 +2,7 @@
 from django.contrib import admin
 
 from .models import Recipe, Ingredient, \
-    Tag  # , IngredientDetail, Favorite, ShoppingCart
+    Tag, Favorite  # , IngredientDetail, ShoppingCart
 
 admin.site.empty_value_display = 'Не задано'
 
@@ -10,11 +10,17 @@ admin.site.empty_value_display = 'Не задано'
 class RecipeAdmin(admin.ModelAdmin):
     list_display = (
         'name',
-        'author'
+        'author',
+        'added_in_favorite'
     )
     list_filter = ('author', 'name', 'tags')
     list_display_links = ('name', 'author',)
     filter_horizontal = ('tags', 'ingredients')
+
+    def added_in_favorite(self, obj):
+        count = Favorite.objects.filter(recipe=obj).count()
+        return count
+    added_in_favorite.short_description = "В избранном"
 
 
 admin.site.register(Recipe, RecipeAdmin)
