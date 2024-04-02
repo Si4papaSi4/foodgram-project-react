@@ -5,5 +5,6 @@ COPY package*.json ./
 RUN npm install
 COPY . ./
 RUN npm run build
+COPY redoc.html build/
 
 CMD cp -r build/. /frontend_static/

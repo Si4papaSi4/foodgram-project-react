@@ -30,7 +30,6 @@ services:
     build: ./infra/
     env_file: .env
     volumes:
-      - ./docs/:/usr/share/nginx/html/api/docs/
       - static:/staticfiles
       - media_volume:/media
     ports:
