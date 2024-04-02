@@ -142,7 +142,7 @@ class RecipeViewSet(NoPatchMixin):
             permission_classes=[permissions.IsAuthenticated])
     def download_shopping_cart(self, request):
         cart_list = self.get_shopping_list_ingredients()
-        response = HttpResponse(content_type='text/plain; charset=utf-8')
+        response = HttpResponse(content_type='text/plain')
         response['Content-Disposition'] = ('attachment; '
                                            'filename="shopping_list.txt"')
         writer = csv.writer(response)
