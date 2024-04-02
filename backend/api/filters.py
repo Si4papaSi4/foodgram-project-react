@@ -1,19 +1,53 @@
 import django_filters
+from django.db.models import Exists, OuterRef
 
+from favorited.models import Favorite, ShoppingCart
 from recipes.models import Ingredient, Recipe
 
 
 class CustomFilter(django_filters.FilterSet):
     tags = django_filters.CharFilter(method='filter_by_tags')
-    author = django_filters.CharFilter(field_name='author__id')
+    author = django_filters.CharFilter()
+    is_favorited = django_filters.CharFilter(method='filter_favorited')
+    is_in_shopping_cart = django_filters.CharFilter(
+        method='filter_shopping_cart'
+    )
+
+    class Meta:
+        model = Recipe
+        fields = ['tags', 'author']
 
     def filter_by_tags(self, queryset, name, value):
         tags = self.request.GET.getlist('tags')
         return queryset.filter(tags__slug__in=tags).distinct()
 
-    class Meta:
-        model = Recipe
-        fields = ['tags', 'author']
+    def filter_favorited(self, queryset, name, value):
+        is_favorited = self.request.query_params.get('is_favorited')
+        if self.request.user.is_authenticated:
+            if is_favorited == '1':
+                subquery = Favorite.objects.filter(user=self.request.user,
+                                                   recipe=OuterRef('pk'))
+                queryset = queryset.filter(Exists(subquery))
+            elif is_favorited == '0':
+                subquery = Favorite.objects.filter(user=self.request.user,
+                                                   recipe=OuterRef('pk'))
+                queryset = queryset.exclude(Exists(subquery))
+        return queryset.distinct()
+
+    def filter_shopping_cart(self, queryset, name, value):
+        is_in_shopping_cart = self.request.query_params.get(
+            'is_in_shopping_cart'
+        )
+        if self.request.user.is_authenticated:
+            if is_in_shopping_cart == '1':
+                subquery = ShoppingCart.objects.filter(user=self.request.user,
+                                                       recipe=OuterRef('pk'))
+                queryset = queryset.filter(Exists(subquery))
+            elif is_in_shopping_cart == '0':
+                subquery = ShoppingCart.objects.filter(user=self.request.user,
+                                                       recipe=OuterRef('pk'))
+                queryset = queryset.exclude(Exists(subquery))
+        return queryset.distinct()
 
 
 class IngredientFilter(django_filters.FilterSet):

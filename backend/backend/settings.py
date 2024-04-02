@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     'colorfield',
     'djoser',
     'api',
+    'favorited',
     'users',
     'recipes'
 ]
@@ -71,8 +72,8 @@ DJOSER = {
     'HIDE_USERS': False,
     'PERMISSIONS': {
 
-        'user': ['djoser.permissions.CurrentUserOrAdminOrReadOnly'],
-        'user_list': ['djoser.permissions.CurrentUserOrAdminOrReadOnly'],
+        'user': ['api.permissions.CustomCurrentUserOrAdminOrReadOnly'],
+        'user_list': ['api.permissions.CustomCurrentUserOrAdminOrReadOnly'],
 
     },
     'SERIALIZERS': {
@@ -94,8 +95,6 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
-HIDE_USERS = False
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [

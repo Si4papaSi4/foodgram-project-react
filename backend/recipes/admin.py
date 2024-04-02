@@ -1,6 +1,8 @@
 from django.contrib import admin
 
-from .models import Favorite, Ingredient, Recipe, Tag
+from favorited.models import Favorite
+
+from .models import Ingredient, Recipe, Tag
 
 admin.site.empty_value_display = 'Не задано'
 

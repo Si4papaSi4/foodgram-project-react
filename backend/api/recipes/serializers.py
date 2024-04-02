@@ -1,27 +1,13 @@
-import base64
-import os
-import uuid
-
-from django.conf import settings
 from django.contrib.auth import get_user_model
-from djoser.serializers import UserSerializer
-from rest_framework import serializers
+from django.db.utils import IntegrityError
+from rest_framework import exceptions, serializers
 
-from recipes.models import (Favorite, Ingredient, IngredientDetail, Recipe,
-                            ShoppingCart, Tag)
+from api.users.serializers import CustomUserSerializer
+from backend.customfields import Base64ImageField
+from favorited.models import Favorite, ShoppingCart
+from recipes.models import Ingredient, IngredientDetail, Recipe, Tag
 
 User = get_user_model()
-
-
-class CustomUserSerializer(UserSerializer):
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        data['is_subscribed'] = False
-        user = self.context.get('request').user
-        if user.is_authenticated and instance in user.subscriptions.all():
-            data['is_subscribed'] = True
-        return data
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -40,17 +26,16 @@ class IngredientSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'measurement_unit')
 
 
+class ShortRecipeReadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')
+
+
 class RecipeReadSerializer(serializers.ModelSerializer):
     ingredients = IngredientSerializer(many=True)
     tags = TagSerializer(many=True)
     author = CustomUserSerializer()
-
-    def validate_cooking_time(self, cook_time):
-        if cook_time < 1:
-            raise serializers.ValidationError(
-                "Минимальное время приготовления - 1 минута."
-            )
-        return cook_time
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -89,21 +74,6 @@ class IngredientDetailSerializer(serializers.ModelSerializer):
         fields = ('id', 'amount')
 
 
-class Base64ImageField(serializers.ImageField):
-    """
-    Пользовательское поле для обработки изображений в формате base64.
-    """
-
-    def to_internal_value(self, data):
-        if isinstance(data, str) and data.startswith('data:image'):
-            decoded_image = base64.b64decode(data.split(';base64,')[1])
-            filename = str(uuid.uuid4()) + '.jpg'
-            with open(os.path.join(settings.MEDIA_ROOT, filename), 'wb') as f:
-                f.write(decoded_image)
-            return filename
-        return super().to_internal_value(data)
-
-
 class RecipeSerializer(serializers.ModelSerializer):
     ingredients = IngredientDetailSerializer(many=True)
     tags = serializers.PrimaryKeyRelatedField(queryset=Tag.objects.all(),
@@ -121,6 +91,13 @@ class RecipeSerializer(serializers.ModelSerializer):
                 'повторяющиеся теги или ингредиенты.',
                 code=400)
         return ingredients
+
+    def validate_cooking_time(self, cook_time):
+        if cook_time < 1:
+            raise serializers.ValidationError(
+                "Минимальное время приготовления - 1 минута."
+            )
+        return cook_time
 
     def validate_tags(self, tags):
         if not tags:
@@ -142,35 +119,38 @@ class RecipeSerializer(serializers.ModelSerializer):
         return RecipeReadSerializer(instance, context={
             'request': self.context.get('request')}).data
 
-    def create(self, validated_data):
-        ingredients = validated_data.pop('ingredients')
-        tags = validated_data.pop('tags')
-
-        recipe = Recipe.objects.create(**validated_data)
-
+    def ingredients_tags_create(self, ingredients, recipe, tags):
+        ingredients_instance = []
         for ingredient in ingredients:
-            IngredientDetail.objects.create(
-                ingredient=ingredient['ingredient'], recipe=recipe,
-                amount=ingredient['amount'])
+            ingredients_instance.append(
+                IngredientDetail(
+                    ingredient=ingredient['ingredient'], recipe=recipe,
+                    amount=ingredient['amount'])
+            )
+        IngredientDetail.objects.bulk_create(ingredients_instance)
         for tag in tags:
             recipe.tags.add(tag)
 
+    def create(self, validated_data):
+        ingredients = validated_data.pop('ingredients')
+        tags = validated_data.pop('tags')
+        try:
+            recipe = Recipe.objects.create(**validated_data,
+                                           author=self.context.get(
+                                               'request').user)
+        except IntegrityError:
+            raise exceptions.ValidationError('This recipe already exists',
+                                             code=400)
+        self.ingredients_tags_create(ingredients, recipe, tags)
         return recipe
 
     def update(self, instance, validated_data):
         ingredients_data = validated_data.pop('ingredients', [])
-        instance.ingredients.clear()
-        for ingredient_data in ingredients_data:
-            IngredientDetail.objects.create(
-                ingredient=ingredient_data['ingredient'],
-                recipe=instance,
-                amount=ingredient_data['amount']
-            )
-
         tags_data = validated_data.pop('tags', [])
+        instance.ingredients.clear()
         instance.tags.clear()
-        for tag_data in tags_data:
-            instance.tags.add(tag_data)
+
+        self.ingredients_tags_create(ingredients_data, instance, tags_data)
 
         instance.save()
         super().update(instance, validated_data)

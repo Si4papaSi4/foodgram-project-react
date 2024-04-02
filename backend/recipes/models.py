@@ -107,7 +107,12 @@ class Recipe(models.Model):
     )
     cooking_time = models.IntegerField(
         blank=False,
-        validators=(MinValueValidator(1),),
+        validators=(
+            MinValueValidator(
+                1,
+                message='Минимальное время приготовления 1 минута'
+            ),
+        ),
         verbose_name='Время приготовления'
     )
 
@@ -118,39 +123,3 @@ class Recipe(models.Model):
 
     def __str__(self):
         return self.name
-
-
-class ShoppingCart(models.Model):
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        verbose_name='Пользователь'
-    )
-    recipe = models.ForeignKey(
-        Recipe,
-        on_delete=models.CASCADE,
-        verbose_name='Рецепт'
-    )
-
-    class Meta:
-        verbose_name = 'Список покупок'
-        verbose_name_plural = 'Список покупок'
-        unique_together = ('user', 'recipe')
-
-
-class Favorite(models.Model):
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        verbose_name='Пользователь'
-    )
-    recipe = models.ForeignKey(
-        Recipe,
-        on_delete=models.CASCADE,
-        verbose_name='Рецепт'
-    )
-
-    class Meta:
-        verbose_name = 'Избранное'
-        verbose_name_plural = 'Избранное'
-        unique_together = ('user', 'recipe')
