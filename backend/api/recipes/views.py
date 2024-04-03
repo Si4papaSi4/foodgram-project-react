@@ -1,17 +1,19 @@
 import csv
 
 from django.contrib.auth import get_user_model
-from django.db.utils import IntegrityError
+from django.db.models import Sum
 from django.http import Http404, HttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from api.favorited.serializers import (FavoriteSerializer,
+                                       ShoppingCartSerializer)
 from api.filters import CustomFilter, IngredientFilter
 from api.mixins import NoPatchMixin
 from api.permissions import IsAdminIsAuthorReadOnly
-from favorited.models import Favorite, ShoppingCart
+from favorited.models import ShoppingCart
 from recipes.models import Ingredient, IngredientDetail, Recipe, Tag
 
 from .serializers import (IngredientSerializer, RecipeReadSerializer,
@@ -29,9 +31,7 @@ class TagViewSet(viewsets.GenericViewSet,
     pagination_class = None
 
 
-class IngredientViewSet(viewsets.GenericViewSet,
-                        mixins.ListModelMixin,
-                        mixins.RetrieveModelMixin):
+class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     pagination_class = None
@@ -40,7 +40,7 @@ class IngredientViewSet(viewsets.GenericViewSet,
 
 
 class RecipeViewSet(NoPatchMixin):
-    queryset = Recipe.objects.all().order_by('-id')
+    queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
     permission_classes = (IsAdminIsAuthorReadOnly,
                           permissions.IsAuthenticatedOrReadOnly)
@@ -55,86 +55,72 @@ class RecipeViewSet(NoPatchMixin):
     @action(detail=True, methods=['post'],
             permission_classes=[permissions.IsAuthenticatedOrReadOnly])
     def shopping_cart(self, request, pk=None):
-        user = request.user
         try:
             recipe = self.get_object()
         except Http404:
             return Response({"reason": "Рецепта не существует."},
                             status=status.HTTP_400_BAD_REQUEST)
-        try:
-            ShoppingCart.objects.create(user=user, recipe=recipe)
-            data = ShortRecipeReadSerializer(recipe).data
-            return Response(data, status=status.HTTP_201_CREATED)
-        except IntegrityError:
-            return Response({"reason": "Рецепт уже в списке покупок"},
-                            status=status.HTTP_400_BAD_REQUEST)
+        ShoppingCartSerializer(recipe,
+                               context={
+                                   'request': request
+                               }).create()
+        data = ShortRecipeReadSerializer(recipe).data
+        return Response(data, status=status.HTTP_201_CREATED)
 
     @shopping_cart.mapping.delete
     def delete_shopping_cart(self, request, pk=None):
-        user = request.user
         try:
             recipe = self.get_object()
         except Http404:
             return Response({"reason": "Рецепта не существует."},
                             status=status.HTTP_404_NOT_FOUND)
-        try:
-            ShoppingCart.objects.get(user=user, recipe=recipe).delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except ShoppingCart.DoesNotExist:
-            return Response({"reason": "Рецепта нет в списке покупок"},
-                            status=status.HTTP_400_BAD_REQUEST)
+        ShoppingCartSerializer(recipe,
+                               context={
+                                   'request': request
+                               }).destroy()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['post'],
             permission_classes=[permissions.IsAuthenticatedOrReadOnly])
     def favorite(self, request, pk=None):
-        user = request.user
         try:
             recipe = self.get_object()
         except Http404:
             return Response({"reason": "Рецепта не существует."},
                             status=status.HTTP_400_BAD_REQUEST)
-        try:
-            Favorite.objects.create(user=user, recipe=recipe)
-            data = ShortRecipeReadSerializer(recipe).data
-            return Response(data, status=status.HTTP_201_CREATED)
-        except IntegrityError:
-            return Response({"reason": "Рецепт уже в избранном"},
-                            status=status.HTTP_400_BAD_REQUEST)
+        FavoriteSerializer(recipe,
+                           context={
+                               'request': request
+                           }).create()
+        data = ShortRecipeReadSerializer(recipe).data
+        return Response(data, status=status.HTTP_201_CREATED)
 
     @favorite.mapping.delete
     def delete_favorite(self, request, pk=None):
-        user = request.user
         try:
             recipe = self.get_object()
         except Http404:
             return Response({"reason": "Рецепта не существует."},
                             status=status.HTTP_404_NOT_FOUND)
-        try:
-            Favorite.objects.get(user=user, recipe=recipe).delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except Favorite.DoesNotExist:
-            return Response({"reason": "Рецепта нет в избранном"},
-                            status=status.HTTP_400_BAD_REQUEST)
+        FavoriteSerializer(recipe,
+                           context={
+                               'request': request
+                           }).destroy()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_shopping_list_ingredients(self):
-        shopping_list = ShoppingCart.objects.filter(user_id=self.request.user)
-        ingredients_dict = {}
-        # Не смог придумать как логично использовать ORM "фишки"...
-
-        for item in shopping_list:
-            recipe = item.recipe_id
-            ingredient_details = IngredientDetail.objects.filter(
-                recipe=recipe)
-            for detail in ingredient_details:
-                ingredient = detail.ingredient
-                key = (ingredient.name, ingredient.measurement_unit)
-                if key in ingredients_dict:
-                    ingredients_dict[key] += detail.amount
-                else:
-                    ingredients_dict[key] = detail.amount
-
-        ingredients_list = [[name, amount, unit] for (name, unit), amount
-                            in ingredients_dict.items()]
+        shopping_list = ShoppingCart.objects.filter(
+            user_id=self.request.user).values('recipe_id')
+        ingredient_details = IngredientDetail.objects.filter(
+            recipe_id__in=shopping_list
+        ).values('ingredient__name',
+                 'ingredient__measurement_unit').annotate(
+            total_amount=Sum('amount'))
+        ingredients_list = [
+            [ingredient['ingredient__name'], ingredient['total_amount'],
+             ingredient['ingredient__measurement_unit']]
+            for ingredient in ingredient_details
+        ]
         return ingredients_list
 
     @action(methods=['get'],

@@ -119,6 +119,7 @@ class Recipe(models.Model):
     class Meta:
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
+        ordering = ('-id',)
         unique_together = ('name', 'author', 'text')
 
     def __str__(self):

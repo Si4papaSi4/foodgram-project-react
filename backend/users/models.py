@@ -27,8 +27,7 @@ class CustomUser(AbstractUser):
         blank=True,
         symmetrical=False,
         verbose_name='Подписки'
-    )  # Как по мне, очень логично разместить подписки здесь
-    # ведь они напрямую относятся к данным юзера.
+    )
 
     REQUIRED_FIELDS = ["first_name", "last_name", "username"]
     USERNAME_FIELD = 'email'

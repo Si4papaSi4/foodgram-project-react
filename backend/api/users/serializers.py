@@ -8,12 +8,6 @@ User = get_user_model()
 class CustomUserSerializer(UserSerializer):
     is_subscribed = serializers.SerializerMethodField()
 
-    def get_is_subscribed(self, obj):
-        user = self.context.get('request').user
-        if user.is_authenticated and obj in user.subscriptions.all():
-            return True
-        return False
-
     class Meta:
         model = User
         fields = (
@@ -24,3 +18,8 @@ class CustomUserSerializer(UserSerializer):
             'last_name',
             'is_subscribed'
         )
+
+    def get_is_subscribed(self, obj):
+        user = self.context.get('request').user
+        return (user.is_authenticated
+                and user.subscriptions.filter(subscription=obj).exists())
