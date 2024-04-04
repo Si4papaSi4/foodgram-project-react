@@ -21,17 +21,17 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     def validate_user_following_add(self, user, following):
         if following == user:
             raise exceptions.ValidationError(
-                {'reason': 'Нельзя подписаться на самого себя'}
+                {'errors': 'Нельзя подписаться на самого себя'}
             )
         if following in user.subscriptions.all():
             raise exceptions.ValidationError(
-                {'reason': 'Вы уже подписаны!'}
+                {'errors': 'Вы уже подписаны!'}
             )
 
     def validate_user_following_remove(self, user, following):
         if following not in user.subscriptions.all():
             raise exceptions.ValidationError(
-                {'reason': 'Вы не подписаны!'}
+                {'errors': 'Вы не подписаны!'}
             )
 
     def save(self):

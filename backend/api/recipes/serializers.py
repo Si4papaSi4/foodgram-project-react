@@ -99,19 +99,19 @@ class RecipeSerializer(serializers.ModelSerializer):
                 ).user
         ).exists():
             raise serializers.ValidationError(
-                {'reason': 'Такой рецепт уже существует!'}
+                {'name': 'Такой рецепт уже существует!'}
             )
         return super().validate(attrs)
 
     def validate_ingredients(self, ingredients):
         if not ingredients:
             raise serializers.ValidationError(
-                {'reason': 'Рецепт должен содержать ингредиенты.'}
+                {'ingredients': 'Рецепт должен содержать ингредиенты.'}
             )
         if len(set(map(lambda ingredient: ingredient['ingredient'],
                        ingredients))) != len(ingredients):
             raise serializers.ValidationError(
-                {'reason': 'Рецепт не может содержать '
+                {'ingredients': 'Рецепт не может содержать '
                            'повторяющиеся ингредиенты.'},
             )
         return ingredients
@@ -119,18 +119,18 @@ class RecipeSerializer(serializers.ModelSerializer):
     def validate_cooking_time(self, cook_time):
         if cook_time < 1:
             raise serializers.ValidationError(
-                {'reason': 'Минимальное время приготовления - 1 минута.'}
+                {'cooking_time': 'Минимальное время приготовления - 1 минута.'}
             )
         return cook_time
 
     def validate_tags(self, tags):
         if not tags:
             raise serializers.ValidationError(
-                {'reason': 'Рецепт должен содержать теги.'}
+                {'tags': 'Рецепт должен содержать теги.'}
             )
         if len(set(tags)) != len(tags):
             raise serializers.ValidationError(
-                {'reason': 'Рецепт не может содержать '
+                {'tags': 'Рецепт не может содержать '
                            'повторяющиеся теги.'},
             )
         return tags
