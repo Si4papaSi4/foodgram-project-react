@@ -14,10 +14,10 @@ class FavoriteSerializer(serializers.Serializer):
         except Recipe.DoesNotExist:
             if self.context.get('request').method == 'POST':
                 raise serializers.ValidationError(
-                    {'reason': 'Рецепта не существует.'})
+                    {'errors': 'Рецепта не существует.'})
             else:
                 raise exceptions.NotFound(
-                    {'reason': 'Рецепта не существует.'})
+                    {'errors': 'Рецепта не существует.'})
         return recipe
 
     def create(self):
@@ -27,7 +27,7 @@ class FavoriteSerializer(serializers.Serializer):
             Favorite.objects.create(user=user, recipe=instance)
         except IntegrityError:
             raise serializers.ValidationError(
-                {'reason': 'Рецепт уже в избранном'})
+                {'errors': 'Рецепт уже в избранном'})
 
     def destroy(self):
         instance = self.validate_and_get_object()
@@ -36,7 +36,7 @@ class FavoriteSerializer(serializers.Serializer):
             Favorite.objects.get(user=user, recipe=instance).delete()
         except Favorite.DoesNotExist:
             raise serializers.ValidationError(
-                {'reason': 'Рецепта нет избранном'})
+                {'errors': 'Рецепта нет избранном'})
 
 
 class ShoppingCartSerializer(serializers.Serializer):
@@ -46,10 +46,10 @@ class ShoppingCartSerializer(serializers.Serializer):
         except Recipe.DoesNotExist:
             if self.context.get('request').method == 'POST':
                 raise serializers.ValidationError(
-                    {'reason': 'Рецепта не существует.'})
+                    {'errors': 'Рецепта не существует.'})
             else:
                 raise exceptions.NotFound(
-                    {'reason': 'Рецепта не существует.'})
+                    {'errors': 'Рецепта не существует.'})
         return recipe
 
     def create(self):
@@ -61,7 +61,7 @@ class ShoppingCartSerializer(serializers.Serializer):
             )
         except IntegrityError:
             raise serializers.ValidationError(
-                {'reason': 'Рецепт уже в списке покупок'})
+                {'errors': 'Рецепт уже в списке покупок'})
 
     def destroy(self):
         instance = self.validate_and_get_object()
@@ -72,4 +72,4 @@ class ShoppingCartSerializer(serializers.Serializer):
             ).delete()
         except ShoppingCart.DoesNotExist:
             raise serializers.ValidationError(
-                {'reason': 'Рецепта нет в списке покупок'})
+                {'errors': 'Рецепта нет в списке покупок'})

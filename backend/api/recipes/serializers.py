@@ -106,32 +106,32 @@ class RecipeSerializer(serializers.ModelSerializer):
     def validate_ingredients(self, ingredients):
         if not ingredients:
             raise serializers.ValidationError(
-                {'ingredients': 'Рецепт должен содержать ингредиенты.'}
+                'Рецепт должен содержать ингредиенты.'
             )
         if len(set(map(lambda ingredient: ingredient['ingredient'],
                        ingredients))) != len(ingredients):
             raise serializers.ValidationError(
-                {'ingredients': 'Рецепт не может содержать '
-                                'повторяющиеся ингредиенты.'},
+                'Рецепт не может содержать '
+                'повторяющиеся ингредиенты.'
             )
         return ingredients
 
     def validate_cooking_time(self, cook_time):
         if cook_time < 1:
             raise serializers.ValidationError(
-                {'cooking_time': 'Минимальное время приготовления - 1 минута.'}
+                'Минимальное время приготовления - 1 минута.'
             )
         return cook_time
 
     def validate_tags(self, tags):
         if not tags:
             raise serializers.ValidationError(
-                {'tags': 'Рецепт должен содержать теги.'}
+                'Рецепт должен содержать теги.'
             )
         if len(set(tags)) != len(tags):
             raise serializers.ValidationError(
-                {'tags': 'Рецепт не может содержать '
-                         'повторяющиеся теги.'},
+                'Рецепт не может содержать '
+                'повторяющиеся теги.'
             )
         return tags
 
