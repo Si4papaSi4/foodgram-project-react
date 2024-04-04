@@ -63,6 +63,7 @@ class IngredientDetail(models.Model):
     ingredient = models.ForeignKey(
         Ingredient,
         null=True,
+        related_name='ingredient',
         on_delete=models.SET_NULL,
         verbose_name='Ингредиент'
     )

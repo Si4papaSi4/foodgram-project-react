@@ -1,9 +1,7 @@
 from django.db import models
-
 from recipes.models import Recipe, User
 
 
-# Create your models here.
 class Favorite(models.Model):
     user = models.ForeignKey(
         User,

@@ -1,11 +1,9 @@
-from django.contrib.auth import get_user_model
-from django.db.utils import IntegrityError
-from rest_framework import exceptions, serializers
-
 from api.fields import Base64ImageField
 from api.users.serializers import CustomUserSerializer
+from django.contrib.auth import get_user_model
 from favorited.models import Favorite, ShoppingCart
 from recipes.models import Ingredient, IngredientDetail, Recipe, Tag
+from rest_framework import serializers
 
 User = get_user_model()
 
@@ -51,80 +49,108 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_is_in_shopping_cart(self, obj):
-        if self.context['request'].user.is_authenticated:
-            return ShoppingCart.objects.filter(
-                recipe=obj, user=self.context['request'].user
+        return (
+            self.context['request'].user.is_authenticated
+            and ShoppingCart.objects.filter(
+                recipe=obj,
+                user=self.context['request'].user
             ).exists()
-        return False
+        )
 
     def get_is_favorited(self, obj):
-        if self.context['request'].user.is_authenticated:
-            return Favorite.objects.filter(
-                recipe=obj, user=self.context['request'].user
+        return (
+            self.context['request'].user.is_authenticated
+            and Favorite.objects.filter(
+                recipe=obj,
+                user=self.context['request'].user
             ).exists()
-        return False
+        )
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
         for ingredient in data['ingredients']:
             ingredient['amount'] = IngredientDetail.objects.get(
-                ingredient_id=ingredient['id'], recipe_id=data['id']).amount
+                ingredient_id=ingredient['id'], recipe=instance).amount
         return data
-    # Не смог избавиться от этого, не понял... Задаю вопрос. КАК?
+    # Я пытался сделать все, как вы писали, но там не получается,
+    # связи моделей через промежуточную through=IngredientDetail
+    # не позволяют это сделать, modelSerializer сходит с ума
+    # и обращается сразу к 2 моделям IngredientDetail и Ingredient
 
 
 class RecipeSerializer(serializers.ModelSerializer):
     ingredients = IngredientDetailSerializer(many=True)
-    tags = serializers.PrimaryKeyRelatedField(queryset=Tag.objects.all(),
-                                              many=True)
+    tags = serializers.PrimaryKeyRelatedField(
+        queryset=Tag.objects.all(),
+        many=True
+    )
     image = Base64ImageField()
 
     class Meta:
         model = Recipe
         exclude = ('author',)
 
+    def validate(self, attrs):
+        if Recipe.objects.filter(
+                name=attrs['name'],
+                text=attrs['text'],
+                author=self.context.get(
+                    'request'
+                ).user
+        ).exists():
+            raise serializers.ValidationError(
+                {'reason': 'Такой рецепт уже существует!'}
+            )
+        return super().validate(attrs)
+
     def validate_ingredients(self, ingredients):
         if not ingredients:
             raise serializers.ValidationError(
-                'Рецепт должен содержать ингредиенты.', code=400)
+                {'reason': 'Рецепт должен содержать ингредиенты.'}
+            )
         if len(set(map(lambda ingredient: ingredient['ingredient'],
                        ingredients))) != len(ingredients):
             raise serializers.ValidationError(
-                'Рецепт не может содержать '
-                'повторяющиеся ингредиенты.',
-                code=400)
+                {'reason': 'Рецепт не может содержать '
+                           'повторяющиеся ингредиенты.'},
+            )
         return ingredients
 
     def validate_cooking_time(self, cook_time):
         if cook_time < 1:
             raise serializers.ValidationError(
-                "Минимальное время приготовления - 1 минута."
+                {'reason': 'Минимальное время приготовления - 1 минута.'}
             )
         return cook_time
 
     def validate_tags(self, tags):
         if not tags:
             raise serializers.ValidationError(
-                'Рецепт должен содержать теги.', code=400)
+                {'reason': 'Рецепт должен содержать теги.'}
+            )
         if len(set(tags)) != len(tags):
             raise serializers.ValidationError(
-                'Рецепт не может содержать '
-                'повторяющиеся теги.',
-                code=400
+                {'reason': 'Рецепт не может содержать '
+                           'повторяющиеся теги.'},
             )
         return tags
 
     def to_representation(self, instance):
-        return RecipeReadSerializer(instance, context={
-            'request': self.context.get('request')}).data
+        return RecipeReadSerializer(
+            instance,
+            context={
+                'request': self.context.get('request')
+            }
+        ).data
 
     def ingredients_create(self, ingredients, recipe):
-        ingredients_instance = [
+        IngredientDetail.objects.bulk_create(
             IngredientDetail(
-                ingredient=ingredient['ingredient'], recipe=recipe,
-                amount=ingredient['amount']) for ingredient in ingredients
-        ]
-        IngredientDetail.objects.bulk_create(ingredients_instance)
+                ingredient=ingredient['ingredient'],
+                recipe=recipe,
+                amount=ingredient['amount']
+            ) for ingredient in ingredients
+        )
 
     def tags_create(self, recipe, tags):
         for tag in tags:
@@ -133,13 +159,12 @@ class RecipeSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
-        try:
-            recipe = Recipe.objects.create(**validated_data,
-                                           author=self.context.get(
-                                               'request').user)
-        except IntegrityError:
-            raise exceptions.ValidationError('This recipe already exists',
-                                             code=400)
+        recipe = Recipe.objects.create(
+            **validated_data,
+            author=self.context.get(
+                'request'
+            ).user
+        )
         self.ingredients_create(ingredients, recipe)
         self.tags_create(recipe, tags)
         return recipe

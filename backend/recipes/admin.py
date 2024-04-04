@@ -1,5 +1,4 @@
 from django.contrib import admin
-
 from favorited.models import Favorite
 
 from .models import Ingredient, Recipe, Tag
@@ -25,7 +24,7 @@ class RecipeAdmin(admin.ModelAdmin):
     def added_in_favorite(self, obj):
         count = Favorite.objects.filter(recipe=obj).count()
         return count
-    added_in_favorite.short_description = "В избранном"
+    added_in_favorite.short_description = 'В избранном'
 
 
 class IngredientAdmin(admin.ModelAdmin):

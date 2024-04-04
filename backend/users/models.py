@@ -29,7 +29,7 @@ class CustomUser(AbstractUser):
         verbose_name='Подписки'
     )
 
-    REQUIRED_FIELDS = ["first_name", "last_name", "username"]
+    REQUIRED_FIELDS = ['first_name', 'last_name', 'username']
     USERNAME_FIELD = 'email'
 
     class Meta:

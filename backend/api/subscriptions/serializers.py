@@ -1,8 +1,7 @@
-from django.contrib.auth import get_user_model
-from rest_framework import exceptions, serializers
-
 from api.recipes.serializers import ShortRecipeReadSerializer
+from django.contrib.auth import get_user_model
 from recipes.models import Recipe
+from rest_framework import exceptions, serializers
 
 User = get_user_model()
 
@@ -19,24 +18,33 @@ class SubscriptionSerializer(serializers.ModelSerializer):
                   'is_subscribed', 'recipes',
                   'recipes_count')
 
-    def create(self):
-        user = self.context['request'].user
-        following = self.instance
+    def validate_user_following_add(self, user, following):
         if following == user:
             raise exceptions.ValidationError(
-                {"reason": "Нельзя подписаться на самого себя"}, code=400)
+                {'reason': 'Нельзя подписаться на самого себя'}
+            )
         if following in user.subscriptions.all():
             raise exceptions.ValidationError(
-                {"reason": "Вы уже подписаны!"}, code=400)
+                {'reason': 'Вы уже подписаны!'}
+            )
+
+    def validate_user_following_remove(self, user, following):
+        if following not in user.subscriptions.all():
+            raise exceptions.ValidationError(
+                {'reason': 'Вы не подписаны!'}
+            )
+
+    def save(self):
+        user = self.context['request'].user
+        following = self.instance
+        self.validate_user_following_add(user, following)
         user.subscriptions.add(following)
         return self.to_representation(self.instance)
 
     def destroy(self):
         user = self.context['request'].user
         following = self.instance
-        if following not in user.subscriptions.all():
-            raise exceptions.ValidationError(
-                {"reason": "Вы не подписаны!"}, code=400)
+        self.validate_user_following_remove(user, following)
         user.subscriptions.remove(following)
         return self.to_representation(self.instance)
 

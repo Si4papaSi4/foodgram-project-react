@@ -1,20 +1,19 @@
 import csv
 
-from django.contrib.auth import get_user_model
-from django.db.models import Sum
-from django.http import Http404, HttpResponse
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import mixins, permissions, status, viewsets
-from rest_framework.decorators import action
-from rest_framework.response import Response
-
 from api.favorited.serializers import (FavoriteSerializer,
                                        ShoppingCartSerializer)
 from api.filters import CustomFilter, IngredientFilter
 from api.mixins import NoPatchMixin
 from api.permissions import IsAdminIsAuthorReadOnly
+from django.contrib.auth import get_user_model
+from django.db.models import Sum
+from django.http import HttpResponse
+from django_filters.rest_framework import DjangoFilterBackend
 from favorited.models import ShoppingCart
 from recipes.models import Ingredient, IngredientDetail, Recipe, Tag
+from rest_framework import permissions, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from .serializers import (IngredientSerializer, RecipeReadSerializer,
                           RecipeSerializer, ShortRecipeReadSerializer,
@@ -23,9 +22,7 @@ from .serializers import (IngredientSerializer, RecipeReadSerializer,
 User = get_user_model()
 
 
-class TagViewSet(viewsets.GenericViewSet,
-                 mixins.ListModelMixin,
-                 mixins.RetrieveModelMixin):
+class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     pagination_class = None
@@ -55,62 +52,43 @@ class RecipeViewSet(NoPatchMixin):
     @action(detail=True, methods=['post'],
             permission_classes=[permissions.IsAuthenticatedOrReadOnly])
     def shopping_cart(self, request, pk=None):
-        try:
-            recipe = self.get_object()
-        except Http404:
-            return Response({"reason": "Рецепта не существует."},
-                            status=status.HTTP_400_BAD_REQUEST)
-        ShoppingCartSerializer(recipe,
-                               context={
-                                   'request': request
-                               }).create()
-        data = ShortRecipeReadSerializer(recipe).data
+        ShoppingCartSerializer(context={
+            'request': request,
+            'pk': pk
+        }).create()
+        data = ShortRecipeReadSerializer(self.get_object()).data
         return Response(data, status=status.HTTP_201_CREATED)
 
     @shopping_cart.mapping.delete
     def delete_shopping_cart(self, request, pk=None):
-        try:
-            recipe = self.get_object()
-        except Http404:
-            return Response({"reason": "Рецепта не существует."},
-                            status=status.HTTP_404_NOT_FOUND)
-        ShoppingCartSerializer(recipe,
-                               context={
-                                   'request': request
-                               }).destroy()
+        ShoppingCartSerializer(context={
+            'request': request,
+            'pk': pk
+        }).destroy()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['post'],
             permission_classes=[permissions.IsAuthenticatedOrReadOnly])
     def favorite(self, request, pk=None):
-        try:
-            recipe = self.get_object()
-        except Http404:
-            return Response({"reason": "Рецепта не существует."},
-                            status=status.HTTP_400_BAD_REQUEST)
-        FavoriteSerializer(recipe,
-                           context={
-                               'request': request
-                           }).create()
-        data = ShortRecipeReadSerializer(recipe).data
+        FavoriteSerializer(context={
+            'request': request,
+            'pk': pk
+        }).create()
+        data = ShortRecipeReadSerializer(self.get_object()).data
         return Response(data, status=status.HTTP_201_CREATED)
 
     @favorite.mapping.delete
     def delete_favorite(self, request, pk=None):
-        try:
-            recipe = self.get_object()
-        except Http404:
-            return Response({"reason": "Рецепта не существует."},
-                            status=status.HTTP_404_NOT_FOUND)
-        FavoriteSerializer(recipe,
-                           context={
-                               'request': request
-                           }).destroy()
+        FavoriteSerializer(context={
+            'request': request,
+            'pk': pk
+        }).destroy()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_shopping_list_ingredients(self):
         shopping_list = ShoppingCart.objects.filter(
-            user_id=self.request.user).values('recipe_id')
+            user_id=self.request.user
+        ).values('recipe_id')
         ingredient_details = IngredientDetail.objects.filter(
             recipe_id__in=shopping_list
         ).values('ingredient__name',

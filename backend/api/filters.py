@@ -1,6 +1,5 @@
 import django_filters
 from django.db.models import Exists, OuterRef
-
 from favorited.models import Favorite, ShoppingCart
 from recipes.models import Ingredient, Recipe
 
@@ -25,11 +24,11 @@ class CustomFilter(django_filters.FilterSet):
         is_favorited = self.request.query_params.get('is_favorited')
         if self.request.user.is_authenticated:
             if is_favorited:
-                subquery = Favorite.objects.filter(user=self.request.user,
-                                                   recipe=OuterRef('pk'))
+                subquery = Favorite.objects.filter(
+                    user=self.request.user,
+                    recipe=OuterRef('pk')
+                )
                 queryset = queryset.filter(Exists(subquery))
-                # Проверка Exists исключает ошибку TypeError:
-                # Cannot filter against a non-conditional expression.
         return queryset.distinct()
 
     def filter_shopping_cart(self, queryset, name, value):
@@ -38,8 +37,10 @@ class CustomFilter(django_filters.FilterSet):
         )
         if self.request.user.is_authenticated:
             if is_in_shopping_cart:
-                subquery = ShoppingCart.objects.filter(user=self.request.user,
-                                                       recipe=OuterRef('pk'))
+                subquery = ShoppingCart.objects.filter(
+                    user=self.request.user,
+                    recipe=OuterRef('pk')
+                )
                 queryset = queryset.filter(Exists(subquery))
         return queryset.distinct()
 
