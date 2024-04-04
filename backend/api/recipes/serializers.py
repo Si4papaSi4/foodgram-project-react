@@ -112,7 +112,7 @@ class RecipeSerializer(serializers.ModelSerializer):
                        ingredients))) != len(ingredients):
             raise serializers.ValidationError(
                 {'ingredients': 'Рецепт не может содержать '
-                           'повторяющиеся ингредиенты.'},
+                                'повторяющиеся ингредиенты.'},
             )
         return ingredients
 
@@ -131,7 +131,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         if len(set(tags)) != len(tags):
             raise serializers.ValidationError(
                 {'tags': 'Рецепт не может содержать '
-                           'повторяющиеся теги.'},
+                         'повторяющиеся теги.'},
             )
         return tags
 
