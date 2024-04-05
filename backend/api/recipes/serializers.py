@@ -91,16 +91,17 @@ class RecipeSerializer(serializers.ModelSerializer):
         exclude = ('author',)
 
     def validate(self, attrs):
-        if Recipe.objects.filter(
-                name=attrs['name'],
-                text=attrs['text'],
-                author=self.context.get(
-                    'request'
-                ).user
-        ).exists():
-            raise serializers.ValidationError(
-                {'name': 'Такой рецепт уже существует!'}
-            )
+        if self.context.get('request').method == 'POST':
+            if Recipe.objects.filter(
+                    name=attrs['name'],
+                    text=attrs['text'],
+                    author=self.context.get(
+                        'request'
+                    ).user
+            ).exists():
+                raise serializers.ValidationError(
+                    {'name': 'Такой рецепт уже существует!'}
+                )
         return super().validate(attrs)
 
     def validate_ingredients(self, ingredients):
