@@ -22,7 +22,7 @@ class CustomUserSerializer(UserSerializer):
     def get_is_subscribed(self, obj):
         user = self.context.get('request').user
         return (user.is_authenticated
-                and user.subscriptions.filter(subscription=obj).exists())
+                and user.subscriptions.filter(email=obj.email).exists())
 
 
 class CustomCreateUserSerializer(UserCreateSerializer):
