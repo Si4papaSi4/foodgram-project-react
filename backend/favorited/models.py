@@ -1,4 +1,5 @@
 from django.db import models
+
 from recipes.models import Recipe, User
 
 
@@ -17,7 +18,6 @@ class Favorite(models.Model):
     class Meta:
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранное'
-        unique_together = ('user', 'recipe')
 
 
 class ShoppingCart(models.Model):
@@ -35,4 +35,3 @@ class ShoppingCart(models.Model):
     class Meta:
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Список покупок'
-        unique_together = ('user', 'recipe')

@@ -1,9 +1,10 @@
+from django.contrib.auth import get_user_model
+from rest_framework import serializers
+
 from api.fields import Base64ImageField
 from api.users.serializers import CustomUserSerializer
-from django.contrib.auth import get_user_model
 from favorited.models import Favorite, ShoppingCart
 from recipes.models import Ingredient, IngredientDetail, Recipe, Tag
-from rest_framework import serializers
 
 User = get_user_model()
 
@@ -31,6 +32,19 @@ class IngredientDetailSerializer(serializers.ModelSerializer):
         fields = ('id', 'amount')
 
 
+class IngredientAmountSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source='ingredient.name')
+    measurement_unit = serializers.CharField(
+        source='ingredient.measurement_unit'
+    )
+    amount = serializers.IntegerField()
+    id = serializers.IntegerField(source='ingredient.id')
+
+    class Meta:
+        model = IngredientDetail
+        fields = ['id', 'name', 'measurement_unit', 'amount']
+
+
 class ShortRecipeReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
@@ -38,7 +52,7 @@ class ShortRecipeReadSerializer(serializers.ModelSerializer):
 
 
 class RecipeReadSerializer(serializers.ModelSerializer):
-    ingredients = IngredientSerializer(many=True)
+    ingredients = serializers.SerializerMethodField()
     tags = TagSerializer(many=True)
     author = CustomUserSerializer()
     is_in_shopping_cart = serializers.SerializerMethodField()
@@ -47,6 +61,11 @@ class RecipeReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = '__all__'
+
+    def get_ingredients(self, obj):
+        ingredient_details = IngredientDetail.objects.filter(recipe=obj)
+        serializer = IngredientAmountSerializer(ingredient_details, many=True)
+        return serializer.data
 
     def get_is_in_shopping_cart(self, obj):
         return (
@@ -65,17 +84,6 @@ class RecipeReadSerializer(serializers.ModelSerializer):
                 user=self.context['request'].user
             ).exists()
         )
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        for ingredient in data['ingredients']:
-            ingredient['amount'] = IngredientDetail.objects.get(
-                ingredient_id=ingredient['id'], recipe=instance).amount
-        return data
-    # Я пытался сделать все, как вы писали, но там не получается,
-    # связи моделей через промежуточную through=IngredientDetail
-    # не позволяют это сделать, modelSerializer сходит с ума
-    # и обращается сразу к 2 моделям IngredientDetail и Ingredient
 
 
 class RecipeSerializer(serializers.ModelSerializer):

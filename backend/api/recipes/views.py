@@ -1,19 +1,20 @@
 import csv
 
+from django.contrib.auth import get_user_model
+from django.db.models import Sum
+from django.http import HttpResponse
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import permissions, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
 from api.favorited.serializers import (FavoriteSerializer,
                                        ShoppingCartSerializer)
 from api.filters import CustomFilter, IngredientFilter
 from api.mixins import NoPatchMixin
 from api.permissions import IsAdminIsAuthorReadOnly
-from django.contrib.auth import get_user_model
-from django.db.models import Sum
-from django.http import HttpResponse
-from django_filters.rest_framework import DjangoFilterBackend
 from favorited.models import ShoppingCart
 from recipes.models import Ingredient, IngredientDetail, Recipe, Tag
-from rest_framework import permissions, status, viewsets
-from rest_framework.decorators import action
-from rest_framework.response import Response
 
 from .serializers import (IngredientSerializer, RecipeReadSerializer,
                           RecipeSerializer, ShortRecipeReadSerializer,
@@ -52,37 +53,81 @@ class RecipeViewSet(NoPatchMixin):
     @action(detail=True, methods=['post'],
             permission_classes=[permissions.IsAuthenticatedOrReadOnly])
     def shopping_cart(self, request, pk=None):
-        ShoppingCartSerializer(context={
-            'request': request,
-            'pk': pk
-        }).create()
+        data = {
+            'recipe': self.kwargs.get('pk'),
+            'user': request.user.id
+        }
+        serializer = ShoppingCartSerializer(
+            data=data,
+            context={
+                'request': request
+            }
+        )
+        if serializer.is_valid():
+            serializer.save()
+        else:
+            return Response(data=serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
         data = ShortRecipeReadSerializer(self.get_object()).data
         return Response(data, status=status.HTTP_201_CREATED)
 
     @shopping_cart.mapping.delete
     def delete_shopping_cart(self, request, pk=None):
-        ShoppingCartSerializer(context={
-            'request': request,
-            'pk': pk
-        }).destroy()
+        data = {
+            'recipe': self.get_object().id,
+            'user': request.user.id
+        }
+        serializer = ShoppingCartSerializer(
+            data=data,
+            context={
+                'request': request
+            }
+        )
+        if serializer.is_valid():
+            serializer.destroy(serializer.validated_data)
+        else:
+            return Response(data=serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['post'],
             permission_classes=[permissions.IsAuthenticatedOrReadOnly])
     def favorite(self, request, pk=None):
-        FavoriteSerializer(context={
-            'request': request,
-            'pk': pk
-        }).create()
+        data = {
+            'recipe': self.kwargs.get('pk'),
+            'user': request.user.id
+        }
+        serializer = FavoriteSerializer(
+            data=data,
+            context={
+                'request': request
+            }
+        )
+        if serializer.is_valid():
+            serializer.save()
+        else:
+            return Response(data=serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
         data = ShortRecipeReadSerializer(self.get_object()).data
         return Response(data, status=status.HTTP_201_CREATED)
 
     @favorite.mapping.delete
     def delete_favorite(self, request, pk=None):
-        FavoriteSerializer(context={
-            'request': request,
-            'pk': pk
-        }).destroy()
+        data = {
+            'recipe': self.get_object().id,
+            'user': request.user.id
+        }
+        serializer = FavoriteSerializer(
+            data=data,
+            context={
+                'request': request
+            }
+        )
+        if serializer.is_valid():
+            serializer.destroy(serializer.validated_data)
+        else:
+            return Response(data=serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_shopping_list_ingredients(self):

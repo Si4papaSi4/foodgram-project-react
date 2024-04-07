@@ -3,24 +3,22 @@ from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
 from django.db import models
 
+from backend.constants import MAX_MEASUREMENT_UNIT_LENGTH, MAX_NAME_LENGTH
+
 User = get_user_model()
 
 
 class Tag(models.Model):
     name = models.CharField(
-        max_length=128,
-        blank=False,
+        max_length=MAX_NAME_LENGTH,
         unique=True,
         verbose_name='Теги'
     )
     color = ColorField(
         default='#FF0000',
-        blank=False,
         verbose_name='Цвет'
     )
     slug = models.SlugField(
-        max_length=128,
-        blank=False,
         verbose_name='Слаг'
     )
 
@@ -34,14 +32,12 @@ class Tag(models.Model):
 
 class Ingredient(models.Model):
     name = models.CharField(
-        max_length=128,
-        blank=False,
+        max_length=MAX_NAME_LENGTH,
         unique=True,
         verbose_name='Ингредиент'
     )
     measurement_unit = models.CharField(
-        blank=False,
-        max_length=128,
+        max_length=MAX_MEASUREMENT_UNIT_LENGTH,
         verbose_name='Единица измерения'
     )
 
@@ -63,7 +59,7 @@ class IngredientDetail(models.Model):
     ingredient = models.ForeignKey(
         Ingredient,
         null=True,
-        related_name='ingredient',
+        related_name='ingredient_info',
         on_delete=models.SET_NULL,
         verbose_name='Ингредиент'
     )
@@ -83,31 +79,25 @@ class Recipe(models.Model):
         verbose_name='Автор'
     )
     name = models.CharField(
-        max_length=200,
-        blank=False,
+        max_length=MAX_NAME_LENGTH,
         verbose_name='Название',
     )
     image = models.ImageField(
-        blank=False,
         verbose_name='Фотография'
     )
     text = models.TextField(
-        blank=False,
         verbose_name='Описание'
     )
     ingredients = models.ManyToManyField(
         Ingredient,
         through=IngredientDetail,
-        blank=False,
         verbose_name='Ингредиенты'
     )
     tags = models.ManyToManyField(
         Tag,
-        blank=False,
         verbose_name='Теги'
     )
     cooking_time = models.IntegerField(
-        blank=False,
         validators=(
             MinValueValidator(
                 1,

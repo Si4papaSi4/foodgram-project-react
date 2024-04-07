@@ -9,7 +9,6 @@ class CreateListDestroyMixin(viewsets.GenericViewSet,
     """
     Миксин для методов POST, GET(LIST), DELETE.
     """
-    pass
 
 
 class PatchModelMixin(mixins.UpdateModelMixin):

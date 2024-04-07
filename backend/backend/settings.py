@@ -77,7 +77,8 @@ DJOSER = {
 
     },
     'SERIALIZERS': {
-        'current_user': 'api.recipes.serializers.CustomUserSerializer'
+        'current_user': 'api.users.serializers.CustomUserSerializer',
+        'user_create': 'api.users.serializers.CustomCreateUserSerializer'
     }
 }
 

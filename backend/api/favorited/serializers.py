@@ -1,75 +1,68 @@
 from django.contrib.auth import get_user_model
-from django.db.utils import IntegrityError
+from rest_framework import serializers
+
 from favorited.models import Favorite, ShoppingCart
-from recipes.models import Recipe
-from rest_framework import exceptions, serializers
 
 User = get_user_model()
 
 
-class FavoriteSerializer(serializers.Serializer):
-    def validate_and_get_object(self):
-        try:
-            recipe = Recipe.objects.get(id=self.context.get('pk'))
-        except Recipe.DoesNotExist:
-            if self.context.get('request').method == 'POST':
-                raise serializers.ValidationError(
-                    {'errors': 'Рецепта не существует.'})
-            else:
-                raise exceptions.NotFound(
-                    {'errors': 'Рецепта не существует.'})
-        return recipe
+class ShoppingCartSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ShoppingCart
+        fields = '__all__'
 
-    def create(self):
-        instance = self.validate_and_get_object()
-        user = self.context['request'].user
-        try:
-            Favorite.objects.create(user=user, recipe=instance)
-        except IntegrityError:
+    def validate(self, attrs):
+        if self.context.get(
+                'request'
+        ).method == 'POST' and ShoppingCart.objects.filter(
+            recipe=attrs.get('recipe'),
+            user=attrs.get('user')
+        ).exists():
             raise serializers.ValidationError(
-                {'errors': 'Рецепт уже в избранном'})
-
-    def destroy(self):
-        instance = self.validate_and_get_object()
-        user = self.context['request'].user
-        try:
-            Favorite.objects.get(user=user, recipe=instance).delete()
-        except Favorite.DoesNotExist:
-            raise serializers.ValidationError(
-                {'errors': 'Рецепта нет избранном'})
-
-
-class ShoppingCartSerializer(serializers.Serializer):
-    def validate_and_get_object(self):
-        try:
-            recipe = Recipe.objects.get(id=self.context.get('pk'))
-        except Recipe.DoesNotExist:
-            if self.context.get('request').method == 'POST':
-                raise serializers.ValidationError(
-                    {'errors': 'Рецепта не существует.'})
-            else:
-                raise exceptions.NotFound(
-                    {'errors': 'Рецепта не существует.'})
-        return recipe
-
-    def create(self):
-        instance = self.validate_and_get_object()
-        try:
-            ShoppingCart.objects.create(
-                user=self.context['request'].user,
-                recipe=instance
+                {'errors': 'Рецепт уже в списке покупок'}
             )
-        except IntegrityError:
+        elif not ShoppingCart.objects.filter(
+            recipe=attrs.get('recipe'),
+            user=attrs.get('user')
+        ).exists() and self.context.get('request').method != 'POST':
             raise serializers.ValidationError(
-                {'errors': 'Рецепт уже в списке покупок'})
+                {'errors': 'Рецепта нет в списке покупок'}
+            )
+        return attrs
 
-    def destroy(self):
-        instance = self.validate_and_get_object()
-        try:
-            ShoppingCart.objects.get(
-                user=self.context['request'].user,
-                recipe=instance
-            ).delete()
-        except ShoppingCart.DoesNotExist:
+    def destroy(self, validated_data):
+        ShoppingCart.objects.filter(
+            user=validated_data.get('user'),
+            recipe=validated_data.get('recipe')
+        ).delete()
+
+
+class FavoriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Favorite
+        fields = '__all__'
+
+    def validate(self, attrs):
+        if self.context.get(
+                'request'
+        ).method == 'POST' and Favorite.objects.filter(
+            recipe=attrs.get('recipe'),
+            user=attrs.get('user')
+        ).exists():
             raise serializers.ValidationError(
-                {'errors': 'Рецепта нет в списке покупок'})
+                {'errors': 'Рецепт уже в избранном'}
+            )
+        elif not Favorite.objects.filter(
+            recipe=attrs.get('recipe'),
+            user=attrs.get('user')
+        ).exists() and self.context.get('request').method != 'POST':
+            raise serializers.ValidationError(
+                {'errors': 'Рецепта нет в избранном'}
+            )
+        return attrs
+
+    def destroy(self, validated_data):
+        Favorite.objects.filter(
+            user=validated_data.get('user'),
+            recipe=validated_data.get('recipe')
+        ).delete()
