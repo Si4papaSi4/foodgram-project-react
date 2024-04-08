@@ -1,6 +1,5 @@
 import django_filters
 from django.db.models import Exists, OuterRef
-
 from favorited.models import Favorite, ShoppingCart
 from recipes.models import Ingredient, Recipe
 

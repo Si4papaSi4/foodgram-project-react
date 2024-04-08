@@ -1,7 +1,7 @@
+from api.recipes.serializers import ShortRecipeReadSerializer
 from django.contrib.auth import get_user_model
-from rest_framework import serializers
-
 from favorited.models import Favorite, ShoppingCart
+from rest_framework import serializers
 
 User = get_user_model()
 
@@ -36,6 +36,9 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
             recipe=validated_data.get('recipe')
         ).delete()
 
+    def to_representation(self, instance):
+        return ShortRecipeReadSerializer(instance.recipe).data
+
 
 class FavoriteSerializer(serializers.ModelSerializer):
     class Meta:
@@ -66,3 +69,6 @@ class FavoriteSerializer(serializers.ModelSerializer):
             user=validated_data.get('user'),
             recipe=validated_data.get('recipe')
         ).delete()
+
+    def to_representation(self, instance):
+        return ShortRecipeReadSerializer(instance.recipe).data

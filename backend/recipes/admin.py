@@ -1,6 +1,5 @@
 from django import forms
 from django.contrib import admin
-
 from favorited.models import Favorite
 
 from .models import Ingredient, Recipe, Tag

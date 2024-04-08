@@ -1,11 +1,10 @@
+from api.pagination import CustomPagination
+from api.subscriptions.serializers import SubscriptionSerializer
+from api.users.serializers import CustomUserSerializer
 from djoser.views import UserViewSet
 from rest_framework import permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-
-from api.pagination import CustomPagination
-from api.subscriptions.serializers import SubscriptionSerializer
-from api.users.serializers import CustomUserSerializer
 
 
 class CustomUserViewSet(UserViewSet):
@@ -38,8 +37,9 @@ class CustomUserViewSet(UserViewSet):
                 'object': following
             }
         ).create()
-        # А почему я не могу передавать объект и уже там все обработать?
-        # Я пытался сделать через дата, но это сложнее и тупее...(
+        # Короче, пытался все переделать как сказали
+        # Промучился 4 часа, ничего не вышло
+        # Этот способ самый короткий и эстетичный...
         return Response(data, status=status.HTTP_201_CREATED)
 
     @subscribe.mapping.delete

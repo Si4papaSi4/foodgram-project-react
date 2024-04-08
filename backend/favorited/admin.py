@@ -14,6 +14,13 @@ class FavoriteAdmin(admin.ModelAdmin):
     )
     list_filter = ('user',)
 
+    def save_model(self, request, obj, form, change):
+        if not change:
+            if Favorite.objects.filter(user=obj.user,
+                                       recipe=obj.recipe).exists():
+                raise ValueError("Такая комбинация значений уже существует.")
+        super().save_model(request, obj, form, change)
+
 
 class ShoppingCartInlineAdmin(admin.TabularInline):
     model = ShoppingCart
@@ -25,6 +32,13 @@ class ShoppingCartAdmin(admin.ModelAdmin):
         'recipe'
     )
     list_filter = ('user',)
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            if ShoppingCart.objects.filter(user=obj.user,
+                                           recipe=obj.recipe).exists():
+                raise ValueError("Такая комбинация значений уже существует.")
+        super().save_model(request, obj, form, change)
 
 
 admin.site.register(ShoppingCart, ShoppingCartAdmin)

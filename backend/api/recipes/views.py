@@ -1,24 +1,22 @@
 import csv
 
-from django.contrib.auth import get_user_model
-from django.db.models import Sum
-from django.http import HttpResponse
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import permissions, status, viewsets
-from rest_framework.decorators import action
-from rest_framework.response import Response
-
 from api.favorited.serializers import (FavoriteSerializer,
                                        ShoppingCartSerializer)
 from api.filters import CustomFilter, IngredientFilter
 from api.mixins import NoPatchMixin
 from api.permissions import IsAdminIsAuthorReadOnly
+from django.contrib.auth import get_user_model
+from django.db.models import Sum
+from django.http import HttpResponse
+from django_filters.rest_framework import DjangoFilterBackend
 from favorited.models import ShoppingCart
 from recipes.models import Ingredient, IngredientDetail, Recipe, Tag
+from rest_framework import permissions, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from .serializers import (IngredientSerializer, RecipeReadSerializer,
-                          RecipeSerializer, ShortRecipeReadSerializer,
-                          TagSerializer)
+                          RecipeSerializer, TagSerializer)
 
 User = get_user_model()
 
@@ -68,8 +66,7 @@ class RecipeViewSet(NoPatchMixin):
         else:
             return Response(data=serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
-        data = ShortRecipeReadSerializer(self.get_object()).data
-        return Response(data, status=status.HTTP_201_CREATED)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @shopping_cart.mapping.delete
     def delete_shopping_cart(self, request, pk=None):
@@ -108,8 +105,7 @@ class RecipeViewSet(NoPatchMixin):
         else:
             return Response(data=serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
-        data = ShortRecipeReadSerializer(self.get_object()).data
-        return Response(data, status=status.HTTP_201_CREATED)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @favorite.mapping.delete
     def delete_favorite(self, request, pk=None):

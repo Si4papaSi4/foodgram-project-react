@@ -1,8 +1,7 @@
-from django.contrib.auth import get_user_model
-from rest_framework import exceptions, serializers
-
 from api.recipes.serializers import ShortRecipeReadSerializer
+from django.contrib.auth import get_user_model
 from recipes.models import Recipe
+from rest_framework import exceptions, serializers
 
 User = get_user_model()
 
@@ -60,10 +59,4 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         return recipes_data
 
     def get_recipes_count(self, obj):
-        recipes = Recipe.objects.filter(author=obj)
-        recipes_limit = self.context.get(
-            'request'
-        ).query_params.get('recipes_limit')
-        if recipes_limit:
-            return int(recipes_limit)
-        return recipes.count()
+        return Recipe.objects.filter(author=obj).count()

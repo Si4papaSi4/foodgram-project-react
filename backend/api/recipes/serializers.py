@@ -1,10 +1,9 @@
-from django.contrib.auth import get_user_model
-from rest_framework import serializers
-
 from api.fields import Base64ImageField
 from api.users.serializers import CustomUserSerializer
+from django.contrib.auth import get_user_model
 from favorited.models import Favorite, ShoppingCart
 from recipes.models import Ingredient, IngredientDetail, Recipe, Tag
+from rest_framework import serializers
 
 User = get_user_model()
 
@@ -42,7 +41,7 @@ class IngredientAmountSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = IngredientDetail
-        fields = ['id', 'name', 'measurement_unit', 'amount']
+        fields = ('id', 'name', 'measurement_unit', 'amount')
 
 
 class ShortRecipeReadSerializer(serializers.ModelSerializer):
@@ -120,13 +119,8 @@ class RecipeSerializer(serializers.ModelSerializer):
         if len(set(map(lambda ingredient: ingredient['ingredient'],
                        ingredients))) != len(ingredients):
             raise serializers.ValidationError(
-                'Рецепт не может содержать '
-                'повторяющиеся ингредиенты.'
-                # Вот проверка на ингредиенты, я не знаю почему
-                # Фронт не дает ошибку
-                # 2) НЕ ИСПРАВЛЕНО "На странице подпискок у
-                # Пользователя нет сылок на все рецепты".
-                # Тоже не понимаю в чем проблема...
+                {'id': ['Рецепт не может содержать '
+                        'повторяющиеся ингредиенты.']}
             )
         return ingredients
 
