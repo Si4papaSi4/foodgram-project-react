@@ -119,8 +119,8 @@ class RecipeSerializer(serializers.ModelSerializer):
         if len(set(map(lambda ingredient: ingredient['ingredient'],
                        ingredients))) != len(ingredients):
             raise serializers.ValidationError(
-                {'id': ['Рецепт не может содержать '
-                        'повторяющиеся ингредиенты.']}
+                [{'id': ['Рецепт не может содержать '
+                         'повторяющиеся ингредиенты.']}]
             )
         return ingredients
 
